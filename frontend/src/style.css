@@ -9,3 +9,19 @@
 body {
   @apply text-gray-800 bg-slate-50 antialiased;
 }
+
+/* Wish wall unified font style */
+.wish-font {
+  /* Use a readable system-ui stack; adjust weight and leading to match example */
+  font-family: "Noto Serif SC", Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  line-height: 1.8;
+  font-size: 16px;
+}
+
+/* Small caps-like author label */
+.wish-author {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}

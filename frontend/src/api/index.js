@@ -80,6 +80,14 @@ export const wishAPI = {
     })
   },
 
+  // 评论点赞/取消点赞
+  toggleCommentLike(wishId, commentId, userUid, action = 'like') {
+    return apiClient.post(`/api/wishes/${wishId}/comments/${commentId}/like`, {
+      user_uid: userUid,
+      action
+    })
+  },
+
   // 获取统计数据
   getStats() {
     return apiClient.get('/api/stats')

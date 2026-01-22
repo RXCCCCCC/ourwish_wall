@@ -8,7 +8,7 @@ from flask_cors import CORS
 from sqlalchemy import func
 
 from config import config
-from models import db, Wish, Comment, Like, RateLimit
+from models import db, Wish, Comment, Like, CommentLike, RateLimit
 from services.ai_service import AIService
 from services.text_filter import TextFilter
 
@@ -92,6 +92,7 @@ def register_routes(app):
             - page: 页码 (default: 1)
             - per_page: 每页数量 (default: 10)
             - category: 类别过滤 (optional)
+            - user_uid: 当前用户ID (optional, 用于返回点赞状态)
         """
         page = request.args.get('page', 1, type=int)
         per_page = min(
@@ -99,6 +100,7 @@ def register_routes(app):
             app.config['MAX_PAGE_SIZE']
         )
         category = request.args.get('category', type=str)
+        user_uid = request.args.get('user_uid', type=str)
         
         # 构建查询
         query = Wish.query
@@ -111,7 +113,7 @@ def register_routes(app):
         # 分页
         pagination = query.paginate(page=page, per_page=per_page, error_out=False)
         
-        wishes = [wish.to_dict(include_comments=True) for wish in pagination.items]
+        wishes = [wish.to_dict(include_comments=True, user_uid=user_uid) for wish in pagination.items]
         
         return jsonify({
             'total': pagination.total,
@@ -250,13 +252,14 @@ def register_routes(app):
     def get_comments(wish_id):
         """获取心愿的评论列表"""
         wish = Wish.query.get_or_404(wish_id)
+        user_uid = request.args.get('user_uid', type=str)
         comments = Comment.query.filter_by(wish_id=wish_id)\
             .order_by(Comment.created_at.desc())\
             .all()
         
         return jsonify({
             'wish_id': wish_id,
-            'comments': [comment.to_dict() for comment in comments]
+            'comments': [comment.to_dict(user_uid=user_uid) for comment in comments]
         })
     
     @app.route('/api/wishes/<int:wish_id>/comments', methods=['POST'])
@@ -298,7 +301,7 @@ def register_routes(app):
         try:
             db.session.add(comment)
             db.session.commit()
-            return jsonify(comment.to_dict()), 201
+            return jsonify(comment.to_dict(user_uid=data['user_uid'])), 201
         except Exception as e:
             db.session.rollback()
             app.logger.error(f'创建评论失败: {e}')
@@ -330,6 +333,9 @@ def register_routes(app):
             return jsonify({'error': '无权删除此评论'}), 403
         
         try:
+            # 先删除关联的评论点赞记录
+            CommentLike.query.filter_by(comment_id=comment_id).delete(synchronize_session=False)
+            
             db.session.delete(comment)
             db.session.commit()
             return jsonify({'ok': True, 'message': '评论已删除'})
@@ -337,6 +343,68 @@ def register_routes(app):
             db.session.rollback()
             app.logger.error(f'删除评论失败: {e}')
             return jsonify({'error': '删除失败, 请稍后重试'}), 500
+    
+    @app.route('/api/wishes/<int:wish_id>/comments/<int:comment_id>/like', methods=['POST'])
+    def toggle_comment_like(wish_id, comment_id):
+        """
+        评论点赞/取消点赞
+        Request body:
+            {
+                "user_uid": "RedGuard_007",
+                "action": "like"  # 或 "unlike"
+            }
+        """
+        wish = Wish.query.get_or_404(wish_id)
+        comment = Comment.query.get_or_404(comment_id)
+        
+        if comment.wish_id != wish_id:
+            return jsonify({'error': '评论不属于该心愿'}), 400
+        
+        data = request.get_json()
+        user_uid = data.get('user_uid')
+        action = data.get('action', 'like')
+        
+        if not user_uid:
+            return jsonify({'error': '缺少 user_uid'}), 400
+        
+        # 查找是否已点赞
+        existing_like = CommentLike.query.filter_by(
+            comment_id=comment_id,
+            user_uid=user_uid
+        ).first()
+        
+        try:
+            if action == 'like':
+                if existing_like:
+                    return jsonify({'error': '您已经点赞过了'}), 400
+                
+                # 添加点赞
+                like = CommentLike(comment_id=comment_id, user_uid=user_uid)
+                db.session.add(like)
+                comment.likes += 1
+                
+            elif action == 'unlike':
+                if not existing_like:
+                    return jsonify({'error': '您还未点赞'}), 400
+                
+                # 取消点赞
+                db.session.delete(existing_like)
+                comment.likes = max(0, comment.likes - 1)
+            
+            else:
+                return jsonify({'error': '无效的操作'}), 400
+            
+            db.session.commit()
+            return jsonify({
+                'id': comment.id,
+                'likes': comment.likes,
+                'action': action
+            })
+            
+        except Exception as e:
+            db.session.rollback()
+            app.logger.error(f'评论点赞操作失败: {e}')
+            return jsonify({'error': '操作失败, 请稍后重试'}), 500
     
     @app.route('/api/wishes/<int:wish_id>', methods=['DELETE'])
     def delete_wish(wish_id):
@@ -364,6 +432,14 @@ def register_routes(app):
                 Like.query.filter_by(wish_id=wish_id).delete(synchronize_session=False)
             except Exception:
                 # 如果 likes 表不存在或出错，忽略并继续
+                pass
+
+            try:
+                # 删除该心愿下所有评论的点赞记录
+                comment_ids = [c.id for c in Comment.query.filter_by(wish_id=wish_id).all()]
+                if comment_ids:
+                    CommentLike.query.filter(CommentLike.comment_id.in_(comment_ids)).delete(synchronize_session=False)
+            except Exception:
                 pass
 
             try:

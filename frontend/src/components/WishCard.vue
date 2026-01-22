@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { wishAPI } from '@/api'
+import { showConfirmDialog } from 'vant'
 
 const props = defineProps({
 	wish: {
@@ -43,7 +44,8 @@ function nameToColor(name) {
 
 const likedIds = ref(JSON.parse(localStorage.getItem('liked_wishes') || '[]'))
 const likes = ref(props.wish.likes ?? Math.floor(Math.random() * 90) + 10)
-const liked = computed(() => likedIds.value.includes(props.wish.id))
+// Prefer backend user_liked state over local storage
+const liked = ref(props.wish.user_liked ?? likedIds.value.includes(props.wish.id))
 
 async function toggleLike() {
 	const id = props.wish.id
@@ -55,9 +57,11 @@ async function toggleLike() {
 	const oldLikedIds = [...likedIds.value]
 	
 	if (wasLiked) {
+		liked.value = false
 		likedIds.value = likedIds.value.filter(x => x !== id)
 		likes.value = Math.max(0, likes.value - 1)
 	} else {
+		liked.value = true
 		likedIds.value.push(id)
 		likes.value += 1
 	}
@@ -66,19 +70,106 @@ async function toggleLike() {
 	// Call backend API
 	try {
 		const action = wasLiked ? 'unlike' : 'like'
-		const userUid = useUserStore().userInfo?.id || 'guest'
+		const userUid = userStore.userInfo?.id
 		await wishAPI.toggleLike(id, userUid, action)
 	} catch (error) {
-		// Rollback on error
 		console.error('Failed to toggle like:', error)
-		likedIds.value = oldLikedIds
-		likes.value = oldLikes
-		localStorage.setItem('liked_wishes', JSON.stringify(oldLikedIds))
+		// Check if error is "already liked" - sync state instead of rollback
+		if (error.message && error.message.includes('已经点赞')) {
+			// Sync local state to match backend
+			liked.value = true
+			if (!likedIds.value.includes(id)) {
+				likedIds.value.push(id)
+				localStorage.setItem('liked_wishes', JSON.stringify(likedIds.value))
+			}
+		} else if (error.message && error.message.includes('还未点赞')) {
+			// Sync local state to match backend
+			liked.value = false
+			likedIds.value = likedIds.value.filter(x => x !== id)
+			localStorage.setItem('liked_wishes', JSON.stringify(likedIds.value))
+		} else {
+			// Other errors: rollback
+			liked.value = wasLiked
+			likedIds.value = oldLikedIds
+			likes.value = oldLikes
+			localStorage.setItem('liked_wishes', JSON.stringify(oldLikedIds))
+		}
 	}
 }
 
 const comments = ref(props.wish.comments ? [...props.wish.comments] : [])
 const newComment = ref('')
+
+// Comment likes state
+const commentLikedIds = ref(JSON.parse(localStorage.getItem('liked_comments') || '[]'))
+const commentLikesMap = ref(new Map(
+	comments.value.map(c => [c.id, c.likes ?? 0])
+))
+
+function isCommentLiked(commentId) {
+	return commentLikesMap.value.has(commentId) && 
+		(comments.value.find(c => c.id === commentId)?.user_liked ?? commentLikedIds.value.includes(commentId))
+}
+
+function getCommentLikes(commentId) {
+	return commentLikesMap.value.get(commentId) ?? 0
+}
+
+async function toggleCommentLike(comment) {
+	const cid = comment.id
+	if (!cid) return
+	
+	// Optimistic update
+	const wasLiked = isCommentLiked(cid)
+	const oldLikes = commentLikesMap.value.get(cid) ?? 0
+	const oldLikedIds = [...commentLikedIds.value]
+	
+	if (wasLiked) {
+		commentLikedIds.value = commentLikedIds.value.filter(x => x !== cid)
+		commentLikesMap.value.set(cid, Math.max(0, oldLikes - 1))
+	} else {
+		commentLikedIds.value.push(cid)
+		commentLikesMap.value.set(cid, oldLikes + 1)
+	}
+	localStorage.setItem('liked_comments', JSON.stringify(commentLikedIds.value))
+	
+	// Update comment user_liked in comments array
+	const idx = comments.value.findIndex(c => c.id === cid)
+	if (idx !== -1) {
+		comments.value[idx].user_liked = !wasLiked
+		comments.value[idx].likes = commentLikesMap.value.get(cid)
+	}
+	
+	// Call backend API
+	try {
+		const action = wasLiked ? 'unlike' : 'like'
+		const userUid = userStore.userInfo?.id
+		await wishAPI.toggleCommentLike(props.wish.id, cid, userUid, action)
+	} catch (error) {
+		console.error('Failed to toggle comment like:', error)
+		// Check if error is "already liked" - sync state instead of rollback
+		if (error.message && error.message.includes('已经点赞')) {
+			if (!commentLikedIds.value.includes(cid)) {
+				commentLikedIds.value.push(cid)
+				localStorage.setItem('liked_comments', JSON.stringify(commentLikedIds.value))
+			}
+			if (idx !== -1) comments.value[idx].user_liked = true
+		} else if (error.message && error.message.includes('还未点赞')) {
+			commentLikedIds.value = commentLikedIds.value.filter(x => x !== cid)
+			localStorage.setItem('liked_comments', JSON.stringify(commentLikedIds.value))
+			if (idx !== -1) comments.value[idx].user_liked = false
+		} else {
+			// Other errors: rollback
+			commentLikedIds.value = oldLikedIds
+			commentLikesMap.value.set(cid, oldLikes)
+			localStorage.setItem('liked_comments', JSON.stringify(oldLikedIds))
+			if (idx !== -1) {
+				comments.value[idx].user_liked = wasLiked
+				comments.value[idx].likes = oldLikes
+			}
+		}
+	}
+}
 
 async function addComment() {
 	const content = newComment.value && newComment.value.trim()
@@ -91,15 +182,18 @@ async function addComment() {
 		nickname: userStore.userInfo?.name || '匿名',
 		user_uid: userStore.userInfo?.id || null,
 		color: userStore.userInfo?.color || nameToColor(userStore.userInfo?.name),
+		likes: 0,
+		user_liked: false,
 		created_at: new Date().toISOString()
 	}
 	comments.value.push(tempComment)
+	commentLikesMap.value.set(tempComment.id, 0)
 	newComment.value = ''
 	
 	// Call backend API
 	try {
 		const newCommentData = await wishAPI.createComment(props.wish.id, {
-			user_uid: userStore.userInfo?.id || 'guest',
+			user_uid: userStore.userInfo?.id,
 			nickname: userStore.userInfo?.name || '匿名',
 			content
 		})
@@ -107,6 +201,10 @@ async function addComment() {
 		const idx = comments.value.findIndex(c => c.id === tempComment.id)
 		if (idx !== -1) {
 			comments.value[idx] = newCommentData
+			// Initialize comment likes map for new comment
+			if (newCommentData.likes !== undefined) {
+				commentLikesMap.value.set(newCommentData.id, newCommentData.likes)
+			}
 		}
 		const updated = { ...props.wish, comments: comments.value }
 		emit('update-wish', updated)
@@ -124,7 +222,25 @@ async function deleteComment(cid) {
 	if (comment.user_uid && userStore.userInfo && comment.user_uid !== userStore.userInfo.id) {
 		return
 	}
-	
+
+	// Confirm with styled dialog
+	// Use Vant Dialog if available, otherwise fallback to native confirm
+	if (typeof showConfirmDialog === 'function') {
+		try {
+			await showConfirmDialog({
+				title: '删除评论',
+				message: '确定删除该评论？此操作无法撤销。',
+				confirmButtonText: '删除',
+				cancelButtonText: '取消',
+				confirmButtonColor: '#ef4444', 
+			})
+		} catch (e) {
+			return
+		}
+	} else {
+		if (!window.confirm('确定删除该评论？此操作无法撤销。')) return
+	}
+
 	// Optimistic update
 	const deletedComment = comments.value[idx]
 	comments.value.splice(idx, 1)
@@ -132,7 +248,7 @@ async function deleteComment(cid) {
 	
 	// Call backend API
 	try {
-		await wishAPI.deleteComment(props.wish.id, cid, userStore.userInfo?.id || 'guest')
+		await wishAPI.deleteComment(props.wish.id, cid, userStore.userInfo?.id)
 	} catch (error) {
 		console.error('Failed to delete comment:', error)
 		// Rollback on error
@@ -142,19 +258,35 @@ async function deleteComment(cid) {
 }
 
 function canDeleteWish() {
-	return userStore.userInfo && props.wish.nickname === userStore.userInfo.name
+	// Allow deletion based on stable user id (user_uid), not mutable nickname
+	return userStore.userInfo && props.wish.user_uid === userStore.userInfo.id
 }
 
 async function handleDeleteWish() {
 	if (!canDeleteWish()) return
-	if (!confirm('确定删除此心愿？此操作无法撤销。')) return
+	// Use Vant Dialog if available, otherwise fallback to native confirm
+	if (typeof showConfirmDialog === 'function') {
+		try {
+			await showConfirmDialog({
+				title: '删除心愿',
+				message: '确定删除此心愿？此操作无法撤销。',
+				confirmButtonText: '删除',
+				cancelButtonText: '取消',
+				confirmButtonColor: '#ef4444', 
+			})
+		} catch (e) {
+			return
+		}
+	} else {
+		if (!window.confirm('确定删除此心愿？此操作无法撤销。')) return
+	}
 	
 	// Optimistically emit delete
 	emit('delete-wish', props.wish.id)
 	
 	// Call backend API
 	try {
-		await wishAPI.deleteWish(props.wish.id, userStore.userInfo?.id || 'guest')
+		await wishAPI.deleteWish(props.wish.id, userStore.userInfo?.id)
 	} catch (error) {
 		console.error('Failed to delete wish:', error)
 		// Note: rollback would require parent to re-add the wish
@@ -181,7 +313,7 @@ async function handleDeleteWish() {
 					</div>
 				</div>
 
-				<p :class="['mb-6 leading-relaxed', props.index % 2 === 0 ? 'font-serif text-lg italic' : 'font-sans text-base']">
+				<p class="mb-6 leading-relaxed wish-font">
 					{{ props.wish.content }}
 				</p>
 
@@ -197,16 +329,22 @@ async function handleDeleteWish() {
 
 				<div class="mt-4">
 					<div v-for="c in comments" :key="c.id" class="flex items-start gap-3 py-3 border-b last:border-b-0">
-								<div :style="{ backgroundColor: c.color || (c.user_uid === userStore.userInfo?.id ? userStore.userInfo?.color : nameToColor(c.nickname)) }" class="w-8 h-8 rounded-full text-white flex-shrink-0 flex items-center justify-center text-xs">
-													{{ c.nickname?.charAt(0) }}
-												</div>
+							<div :style="{ backgroundColor: (c.user_uid === userStore.userInfo?.id ? userStore.userInfo?.color : (c.color || nameToColor(c.nickname))) }" class="w-8 h-8 rounded-full text-white flex-shrink-0 flex items-center justify-center text-xs">
+								{{ (c.user_uid === userStore.userInfo?.id ? userStore.userInfo.name : c.nickname)?.charAt(0) }}
+								</div>
 						<div class="flex-1">
 							<div class="flex items-center justify-between">
-								<div class="text-sm font-medium text-gray-700">{{ c.nickname }}</div>
+								<div class="text-sm font-medium text-gray-700">{{ c.user_uid === userStore.userInfo?.id ? userStore.userInfo.name : c.nickname }}</div>
 								<div class="text-[11px] text-gray-400">{{ formatChineseDate(c.created_at) }}</div>
 							</div>
 							<div class="text-sm text-gray-600 mt-1">{{ c.content }}</div>
-							<div class="mt-2 text-right">
+							<div class="mt-2 flex items-center justify-between">
+								<button @click="toggleCommentLike(c)" class="flex items-center gap-1 text-xs" :class="isCommentLiked(c.id) ? 'text-red-500' : 'text-gray-400'">
+									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3">
+										<path d="M12 21s-6.716-4.95-9.07-8.06C-0.02 8.62 3.4 4 7.5 4c2.08 0 3.54 1.05 4.5 2.1C12.96 5.05 14.42 4 16.5 4 20.6 4 24.02 8.62 21.07 12.94 18.716 16.05 12 21 12 21z" />
+									</svg>
+									<span>{{ getCommentLikes(c.id) }}</span>
+								</button>
 								<button v-if="c.user_uid && userStore.userInfo && c.user_uid === userStore.userInfo.id" @click="deleteComment(c.id)" class="text-xs text-red-500">删除</button>
 							</div>
 						</div>
@@ -220,10 +358,10 @@ async function handleDeleteWish() {
 
 				<div class="flex items-center justify-between mt-4 border-t border-gray-50 pt-3">
 							<div class="flex items-center gap-2">
-							<div :style="{ backgroundColor: props.wish.color || (props.wish.user_uid === userStore.userInfo?.id ? userStore.userInfo?.color : nameToColor(props.wish.nickname)) }" class="w-6 h-6 rounded-full text-white flex items-center justify-center text-[10px]">
-								<span>{{ props.wish.nickname?.charAt(0) }}</span>
-							</div>
-						<span class="text-xs text-gray-500 font-medium">{{ props.wish.nickname }}</span>
+								<div :style="{ backgroundColor: (props.wish.user_uid === userStore.userInfo?.id ? userStore.userInfo?.color : (props.wish.color || nameToColor(props.wish.nickname))) }" class="w-6 h-6 rounded-full text-white flex items-center justify-center text-[10px]">
+									<span>{{ (props.wish.user_uid === userStore.userInfo?.id ? userStore.userInfo.name : props.wish.nickname)?.charAt(0) }}</span>
+								</div>
+						<span class="text-xs text-gray-500 font-medium">{{ props.wish.user_uid === userStore.userInfo?.id ? userStore.userInfo.name : props.wish.nickname }}</span>
 					</div>
 
 					<div class="flex items-center gap-3">

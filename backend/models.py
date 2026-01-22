@@ -25,7 +25,7 @@ class Wish(db.Model):
     # 关联评论
     comments = db.relationship('Comment', backref='wish', lazy='dynamic', cascade='all, delete-orphan')
     
-    def to_dict(self, include_comments=False):
+    def to_dict(self, include_comments=False, user_uid=None):
         """转换为字典格式"""
         data = {
             'id': self.id,
@@ -36,11 +36,16 @@ class Wish(db.Model):
             'content': self.content,
             'ai_response': self.ai_response,
             'likes': self.likes,
-            'created_at': self.created_at.strftime('%Y年%m月%d日') if self.created_at else '',
+            'created_at': self.created_at.strftime('%Y年%m月%d日') if self.created_at else None
         }
         
+        # Check if current user has liked this wish
+        if user_uid:
+            user_liked = Like.query.filter_by(wish_id=self.id, user_uid=user_uid).first() is not None
+            data['user_liked'] = user_liked
+        
         if include_comments:
-            data['comments'] = [comment.to_dict() for comment in self.comments.all()]
+            data['comments'] = [comment.to_dict(user_uid=user_uid) for comment in self.comments.all()]
         
         return data
     
@@ -58,19 +63,28 @@ class Comment(db.Model):
     nickname = db.Column(db.String(64), nullable=False)
     avatar = db.Column(db.String(255), nullable=True)
     content = db.Column(db.Text, nullable=False)
+    likes = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    def to_dict(self):
+    def to_dict(self, user_uid=None):
         """转换为字典格式"""
-        return {
+        data = {
             'id': self.id,
             'wish_id': self.wish_id,
             'user_uid': self.user_uid,
             'nickname': self.nickname,
             'avatar': self.avatar,
             'content': self.content,
+            'likes': self.likes,
             'created_at': self.created_at.strftime('%Y年%m月%d日') if self.created_at else '',
         }
+        
+        # Check if current user has liked this comment
+        if user_uid:
+            user_liked = CommentLike.query.filter_by(comment_id=self.id, user_uid=user_uid).first() is not None
+            data['user_liked'] = user_liked
+        
+        return data
     
     def __repr__(self):
         return f'<Comment {self.id} on Wish {self.wish_id}>'
@@ -92,6 +106,24 @@ class Like(db.Model):
     
     def __repr__(self):
         return f'<Like {self.user_uid} -> Wish {self.wish_id}>'
+
+
+class CommentLike(db.Model):
+    """评论点赞记录表 - 防止重复点赞"""
+    __tablename__ = 'comment_likes'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    comment_id = db.Column(db.Integer, db.ForeignKey('comments.id'), nullable=False, index=True)
+    user_uid = db.Column(db.String(64), nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # 联合唯一索引 - 一个用户对一条评论只能点赞一次
+    __table_args__ = (
+        db.UniqueConstraint('comment_id', 'user_uid', name='unique_comment_user_like'),
+    )
+    
+    def __repr__(self):
+        return f'<CommentLike {self.user_uid} -> Comment {self.comment_id}>'
 
 
 class RateLimit(db.Model):

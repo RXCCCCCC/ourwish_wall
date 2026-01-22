@@ -76,7 +76,7 @@ function onColorInput(e) {
     </div>
 
     <!-- Settings Modal -->
-    <div v-if="showSettings" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" @click="showSettings = false">
+    <div v-if="showSettings" class="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 backdrop-blur-sm p-4 pt-24" @click="showSettings = false">
       <div class="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden relative" @click.stop>
         <!-- Close Button -->
         <button 
@@ -95,7 +95,7 @@ function onColorInput(e) {
           <div class="flex flex-col gap-3">
             <!-- Name Input Field -->
             <div class="flex flex-col gap-2">
-              <label class="text-sm font-bold text-gray-700">我的昵称</label>
+              <label class="text-sm font-bold text-gray-700">我的昵称(不可超过10个字喔)</label>
               <input 
                 v-model="inputName"
                 type="text" 

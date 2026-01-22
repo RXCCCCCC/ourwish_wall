@@ -8,6 +8,9 @@ import WishForm from '../components/WishForm.vue';
 import { onMounted } from 'vue';  // 添加 onMounted
 import { showToast } from 'vant';  // 添加 showToast
 import { wishAPI } from '@/api';
+import { useUserStore } from '@/stores/user';
+
+const userStore = useUserStore();
 const showForm = ref(false);
 
 const wishes = ref([]);
@@ -59,7 +62,11 @@ const fallbackWishes = [
 // Load wishes from backend
 const loadWishes = async () => {
   try {
-    const response = await wishAPI.getWishes({ page: 1, per_page: 20 });
+    const response = await wishAPI.getWishes({ 
+      page: 1, 
+      per_page: 20,
+      user_uid: userStore.userInfo?.id  // Pass current user_uid to get user_liked status
+    });
     if (response && response.wishes && response.wishes.length > 0) {
       wishes.value = response.wishes.map(wish => ({
         ...wish,

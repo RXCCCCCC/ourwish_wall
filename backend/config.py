@@ -40,7 +40,7 @@ class Config:
     
     # 防刷限流配置
     RATE_LIMIT_ENABLED = True
-    RATE_LIMIT_PERIOD = 60  # 秒
+    RATE_LIMIT_PERIOD = 5  # 秒
     RATE_LIMIT_MAX_REQUESTS = 1  # 在周期内最多允许的请求数
     
     # 分页配置
