@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --van-primary-color: #E60012;
+}
+
+body {
+  @apply text-gray-800 bg-slate-50 antialiased;
+}

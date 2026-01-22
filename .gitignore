@@ -179,3 +179,50 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# -----------------------------
+# Frontend / Node
+# -----------------------------
+node_modules/
+frontend/node_modules/
+frontend/dist/
+.vite/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Vite / build caches
+dist/
+.cache/
+.esbuild/
+
+# Frontend env files
+frontend/.env*
+
+# -----------------------------
+# Editor / OS
+# -----------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# -----------------------------
+# Logs
+# -----------------------------
+*.log
+
+# -----------------------------
+# Virtual envs and environment files
+# -----------------------------
+.env
+.env.*
+.venv/
+venv/
+env/
+ENV/
+
+# Keep lockfiles (recommended)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
