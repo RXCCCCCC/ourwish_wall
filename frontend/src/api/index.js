@@ -92,6 +92,11 @@ export const wishAPI = {
   getStats() {
     return apiClient.get('/api/stats')
   }
+  ,
+  // 获取单条心愿
+  getWish(wishId, params = {}) {
+    return apiClient.get(`/api/wishes/${wishId}`, { params })
+  }
 }
 
 export default apiClient

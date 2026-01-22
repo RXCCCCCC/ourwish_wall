@@ -11,6 +11,7 @@ from config import config
 from models import db, Wish, Comment, Like, CommentLike, RateLimit
 from services.ai_service import AIService
 from services.text_filter import TextFilter
+import threading
 
 
 def create_app(config_name='default'):
@@ -167,23 +168,48 @@ def register_routes(app):
         if not is_valid:
             return jsonify({'error': error_msg}), 400
         
-        # 生成 AI 回复
-        ai_response = AIService.generate_response(content, data['category'])
-        
-        # 创建心愿
+        # 我们采用异步生成 AI 回复的方式：立即返回占位文本，
+        # 后台线程完成后再更新数据库中的 ai_response 字段。
+        ai_placeholder = '回响中......'
+
+        # 创建心愿（先保存占位 ai_response）
         wish = Wish(
             user_uid=data['user_uid'],
             nickname=data['nickname'],
             avatar=data.get('avatar', ''),
             category=data['category'],
             content=content,
-            ai_response=ai_response,
+            ai_response=ai_placeholder,
             client_ip=get_client_ip()
         )
         
         try:
             db.session.add(wish)
             db.session.commit()
+
+            # 后台线程：异步生成 AI 回复并更新该心愿的 ai_response 字段
+            def async_generate_and_update(wish_id, wish_content, wish_category):
+                try:
+                    if app.config.get('AI_SERVICE_ENABLED'):
+                        reply = AIService.generate_response_with_llm(wish_content, wish_category)
+                    else:
+                        reply = AIService.generate_response(wish_content, wish_category)
+
+                    with app.app_context():
+                        w = Wish.query.get(wish_id)
+                        if w:
+                            w.ai_response = reply
+                            db.session.commit()
+                except Exception as e:
+                    app.logger.error(f'AI background generation failed for wish {wish_id}: {e}')
+
+            t = threading.Thread(
+                target=async_generate_and_update,
+                args=(wish.id, content, data['category']),
+                daemon=True
+            )
+            t.start()
+
             return jsonify(wish.to_dict()), 201
         except Exception as e:
             db.session.rollback()
@@ -454,6 +480,18 @@ def register_routes(app):
             db.session.rollback()
             app.logger.error(f'删除心愿失败: {e}')
             return jsonify({'error': '删除失败, 请稍后重试'}), 500
+
+
+    @app.route('/api/wishes/<int:wish_id>', methods=['GET'])
+    def get_wish(wish_id):
+        """
+        获取单条心愿的详细信息（包含评论），用于前端轮询更新 AI 回复等字段
+        Query params:
+            - user_uid: 当前用户 ID（可选，用于返回 user_liked）
+        """
+        wish = Wish.query.get_or_404(wish_id)
+        user_uid = request.args.get('user_uid', type=str)
+        return jsonify(wish.to_dict(include_comments=True, user_uid=user_uid))
     
     @app.route('/api/stats', methods=['GET'])
     def get_stats():

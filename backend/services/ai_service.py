@@ -89,60 +89,58 @@ class AIService:
         responses = cls.RESPONSE_LIBRARY.get(category, cls.RESPONSE_LIBRARY['default'])
         return random.choice(responses)
     
-    # ⚠️ 阶段二: 接入真实 LLM API (可选实现)
-    # 如果要使用通义千问或文心一言, 请取消下方注释并配置 config.py 中的 API 密钥
-    """
     @classmethod
     def generate_response_with_llm(cls, wish_content, category):
-        '''
-        使用 LLM API 生成回复 (需要配置 API Key)
-        
-        示例: 通义千问 API 调用
-        '''
-        from config import Config
+        """
+        使用第三方 LLM（SiliconFlow / DeepSeek V3.2）生成回复。
+        当未启用或配置不完整时会回退到本地规则库实现。
+        """
         import requests
-        
-        if not Config.AI_SERVICE_ENABLED or not Config.AI_API_KEY:
-            # 如果未启用或未配置, 回退到规则库
+        from config import Config
+
+        # 配置检查
+        if not Config.AI_SERVICE_ENABLED or not Config.AI_API_KEY or not Config.AI_API_ENDPOINT:
             return cls.generate_response(wish_content, category)
-        
+
+        endpoint = Config.AI_API_ENDPOINT or 'https://api.siliconflow.cn/v1/chat/completions'
+        model = getattr(Config, 'AI_MODEL', 'deepseek-ai/DeepSeek-V3.2')
+
+        # 构建 prompt 和请求体（遵循 SiliconFlow 的 Chat Completions 接口）
+        system_prompt = (
+            '你是一个数字红色助手，对用户的心愿以温暖、简短、充满希望的语气回复，长度尽量控制在30字以内。'
+        )
+        user_prompt = f"用户的心愿：{wish_content}。类别：{category}。请用一句话回应。"
+
+        payload = {
+            'model': model,
+            'messages': [
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            'max_tokens': 60,
+            'temperature': 0.7
+        }
+
+        headers = {
+            'Authorization': f'Bearer {Config.AI_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+
         try:
-            # ⚠️ 以下是通义千问 API 的示例代码, 需要根据实际 API 文档调整
-            prompt = f'''用户是一个关注德兴发展的建设者,他许愿说: "{wish_content}"。
-请以"数字红色助手"的身份,用温暖、充满希望的语气写一句简短的回复(30字以内)。'''
-            
-            headers = {
-                'Authorization': f'Bearer {Config.AI_API_KEY}',
-                'Content-Type': 'application/json'
-            }
-            
-            data = {
-                'model': 'qwen-turbo',  # 模型名称
-                'messages': [
-                    {'role': 'user', 'content': prompt}
-                ],
-                'max_tokens': 100,
-                'temperature': 0.7
-            }
-            
-            response = requests.post(
-                Config.AI_API_ENDPOINT,
-                headers=headers,
-                json=data,
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                ai_reply = result.get('choices', [{}])[0].get('message', {}).get('content', '')
-                if ai_reply:
-                    return ai_reply.strip()
-            
-            # API 调用失败, 回退到规则库
+            resp = requests.post(endpoint, headers=headers, json=payload, timeout=8)
+            if resp.status_code == 200:
+                result = resp.json()
+                # SiliconFlow 返回结构类似 OpenAI: choices[0].message.content
+                choices = result.get('choices') or []
+                if choices and isinstance(choices, list):
+                    message = choices[0].get('message') or {}
+                    content = message.get('content') or ''
+                    if content:
+                        return content.strip()
+
+            # 失败则回退到规则库
             return cls.generate_response(wish_content, category)
-            
+
         except Exception as e:
             print(f'AI API 调用失败: {e}')
-            # 发生异常, 回退到规则库
             return cls.generate_response(wish_content, category)
-    """

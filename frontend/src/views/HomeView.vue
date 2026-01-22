@@ -99,6 +99,35 @@ const handleWishSubmitted = (newWish) => {
   newWish.comments = newWish.comments ?? []
   newWish.created_at = newWish.created_at || new Date().toISOString()
   wishes.value.unshift(newWish)
+  // 如果 ai_response 是占位文本则轮询更新
+  const placeholder = '回响中......'
+  if (newWish.ai_response === placeholder) {
+    const maxAttempts = 30 // 最多尝试 30 次
+    const intervalMs = 2000 // 每 2 秒请求一次
+    let attempts = 0
+
+    const poll = async () => {
+      attempts += 1
+      try {
+        const res = await wishAPI.getWish(newWish.id, { user_uid: userStore.userInfo?.id })
+        if (res && res.ai_response && res.ai_response !== placeholder) {
+          handleUpdateWish(res)
+          return
+        }
+      } catch (e) {
+        // 忽略网络临时错误，继续重试
+        console.error('Polling wish failed:', e)
+      }
+
+      if (attempts < maxAttempts) {
+        setTimeout(poll, intervalMs)
+      } else {
+        console.warn('Polling for AI response timed out for wish', newWish.id)
+      }
+    }
+
+    setTimeout(poll, intervalMs)
+  }
 }
 
 const handleDeleteWish = (id) => {

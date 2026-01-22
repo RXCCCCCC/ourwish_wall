@@ -51,6 +51,8 @@ class Config:
     AI_SERVICE_ENABLED = os.environ.get('AI_SERVICE_ENABLED', 'false').lower() == 'true'
     AI_API_KEY = os.environ.get('AI_API_KEY', '')  # ⚠️ 如果使用通义千问/文心一言,请填写 API Key
     AI_API_ENDPOINT = os.environ.get('AI_API_ENDPOINT', '')  # API 端点
+    # 指定要使用的模型 (DeepSeek V3.2)
+    AI_MODEL = os.environ.get('AI_MODEL', 'deepseek-ai/DeepSeek-V3.2')
     
     # 内容审核
     SENSITIVE_WORDS_ENABLED = True
