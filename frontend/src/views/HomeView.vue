@@ -12,52 +12,9 @@ import { useUserStore } from '@/stores/user';
 
 const userStore = useUserStore();
 const showForm = ref(false);
+const chartsBoardRef = ref(null);
 
 const wishes = ref([]);
-
-// Fallback data in case backend is unavailable
-const fallbackWishes = [
-  {
-    id: 1,
-    content: "愿德兴的红色故事代代相传，家乡越来越美！",
-    category: "红色传承",
-    nickname: "张建国",
-    created_at: new Date('2026-01-22').toISOString(),
-    ai_response: "薪火相传，初心不忘。愿红色基因在数字时代绽放新的光芒。",
-    likes: 88,
-    comments: []
-  },
-  {
-    id: 2,
-    content: "希望能用VR技术复原当年的革命旧址，让年轻人身临其境。",
-    category: "产业发展",
-    nickname: "文旅探索者",
-    created_at: "2026年1月22日",
-    ai_response: "科技赋能历史，让岁月的回响更加清晰。您的创意将连接过去与未来。",
-    likes: 45,
-    comments: []
-  },
-  {
-    id: 3,
-    content: "期待看到更多关于红军医院的数字地图，让那段历史鲜活起来。",
-    category: "红色传承",
-    nickname: "李小红",
-    created_at: new Date('2026-01-21').toISOString(),
-    ai_response: "数字地图将成为时光的索引，指引我们探寻先辈的足迹。",
-    likes: 24,
-    comments: []
-  },
-  {
-    id: 4,
-    content: "希望不仅是旅游，还能通过APP学到更多中医药与红色结合的知识。",
-    category: "产业发展",
-    nickname: "养生达人",
-    created_at: new Date('2026-01-21').toISOString(),
-    ai_response: "红色康养融合创新，让传统智慧与革命精神共同守护健康。",
-    likes: 12,
-    comments: []
-  }
-];
 
 // Load wishes from backend
 const loadWishes = async () => {
@@ -74,13 +31,13 @@ const loadWishes = async () => {
         comments: wish.comments ?? []
       }));
     } else {
-      // Use fallback data if no wishes from backend
-      wishes.value = fallbackWishes;
+      // No wishes from backend - show empty state
+      wishes.value = [];
     }
   } catch (error) {
     console.error('Failed to load wishes from backend:', error);
-    showToast('加载心愿失败，显示示例数据');
-    wishes.value = fallbackWishes;
+    showToast('加载心愿失败，请检查网络连接');
+    wishes.value = [];
   }
 };
 
@@ -99,6 +56,12 @@ const handleWishSubmitted = (newWish) => {
   newWish.comments = newWish.comments ?? []
   newWish.created_at = newWish.created_at || new Date().toISOString()
   wishes.value.unshift(newWish)
+  
+  // 刷新图表数据
+  if (chartsBoardRef.value) {
+    chartsBoardRef.value.refreshCharts()
+  }
+  
   // 如果 ai_response 是占位文本则轮询更新
   const placeholder = '回响中......'
   if (newWish.ai_response === placeholder) {
@@ -132,7 +95,13 @@ const handleWishSubmitted = (newWish) => {
 
 const handleDeleteWish = (id) => {
   const idx = wishes.value.findIndex(w => w.id === id)
-  if (idx !== -1) wishes.value.splice(idx, 1)
+  if (idx !== -1) {
+    wishes.value.splice(idx, 1)
+    // 删除心愿后刷新图表
+    if (chartsBoardRef.value) {
+      chartsBoardRef.value.refreshCharts()
+    }
+  }
 }
 
 const handleUpdateWish = (updated) => {
@@ -149,7 +118,7 @@ const handleUpdateWish = (updated) => {
       <HeroSection />
       
       <!-- Charts Visualization Section -->
-      <ChartsBoard />
+      <ChartsBoard ref="chartsBoardRef" />
       
       <!-- Wish Cards Grid -->
       <div class="max-w-5xl mx-auto px-4 mt-8">

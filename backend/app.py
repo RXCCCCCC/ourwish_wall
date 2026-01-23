@@ -509,28 +509,77 @@ def register_routes(app):
             func.count(Wish.id).label('count')
         ).group_by(Wish.category).all()
         
-        pie_data = [
-            {'name': category, 'value': count}
+        category_stats_data = [
+            {'category': category, 'count': count}
             for category, count in category_stats
         ]
         
-        # 词云数据 - 简化实现: 统计类别和关键词
-        # ⚠️ 实际使用时可以使用 jieba 等分词库进行更精确的词频统计
+        # 词云数据 - 基于实际心愿内容生成（使用 jieba 分词）
+        from collections import Counter
+        try:
+            import jieba
+            import jieba.analyse
+        except ImportError:
+            # 如果 jieba 未安装，使用简单正则提取
+            import re
+            jieba = None
+        
+        # 获取所有心愿内容
+        all_wishes = Wish.query.all()
+        word_freq = Counter()
+        
+        # 扩展的停用词列表
+        stop_words = {
+            '的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一', '一个',
+            '上', '也', '很', '到', '说', '要', '去', '你', '会', '着', '没有', '看',
+            '好', '自己', '这', '能', '们', '可以', '还', '让', '更', '为', '与', '个',
+            '但', '又', '将', '及', '等', '如', '吗', '啊', '呢', '吧', '哦',
+            '这个', '那个', '什么', '怎么', '多少', '哪里', '时候', '已经', '还是'
+        }
+        
+        # 领域相关的关键词（提升权重）
+        domain_keywords = {
+            '红色', '传承', '德兴', '旅游', '乡村', '振兴', '产业', '发展',
+            '生态', '环保', '科技', '赋能', '文化', '历史', '革命', '基因',
+            '建设', '创新', '富裕', '美好', '生活', '家乡', '希望', '未来'
+        }
+        
+        if jieba:
+            # 使用 jieba 分词
+            for wish in all_wishes:
+                if wish.content:
+                    # 使用 TF-IDF 提取关键词
+                    keywords = jieba.analyse.extract_tags(wish.content, topK=10, withWeight=True)
+                    for word, weight in keywords:
+                        if len(word) >= 2 and word not in stop_words:
+                            # 领域关键词加权
+                            boost = 3 if word in domain_keywords else 1
+                            word_freq[word] += int(weight * 100 * boost)
+        else:
+            # 降级方案：使用正则提取
+            import re
+            for wish in all_wishes:
+                if wish.content:
+                    words = re.findall(r'[\u4e00-\u9fa5]{2,4}', wish.content)
+                    for word in words:
+                        if word not in stop_words and len(word) >= 2:
+                            boost = 3 if word in domain_keywords else 1
+                            word_freq[word] += boost
+        
+        # 添加类别作为关键词（更高权重）
+        for category, count in category_stats:
+            if category:
+                word_freq[category] += count * 5
+        
+        # 获取频率最高的前15个词（控制数量避免过于拥挤）
+        top_words = word_freq.most_common(15)
         word_cloud = [
-            {'name': '红色基因', 'value': 100},
-            {'name': '乡村振兴', 'value': 92},
-            {'name': '德兴', 'value': 80},
-            {'name': '科技赋能', 'value': 73},
-            {'name': '旅游', 'value': 65},
-            {'name': '传承', 'value': 60},
-            {'name': '创新', 'value': 55},
-            {'name': '富裕', 'value': 48},
-            {'name': '美好生活', 'value': 42},
-            {'name': '生态', 'value': 39}
+            {'word': word, 'count': count}
+            for word, count in top_words if count > 0
         ]
         
         return jsonify({
-            'pie_data': pie_data,
+            'category_stats': category_stats_data,
             'word_cloud': word_cloud
         })
 
