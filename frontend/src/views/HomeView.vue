@@ -50,12 +50,17 @@ const handlePublishWish = () => {
   showForm.value = true;
 }
 
-const handleWishSubmitted = (newWish) => {
+const handleWishSubmitted = async (newWish) => {
   // ensure fields for likes/comments
   newWish.likes = newWish.likes ?? 0
   newWish.comments = newWish.comments ?? []
   newWish.created_at = newWish.created_at || new Date().toISOString()
+  
+  // 1. 本地立即显示（优化体验）
   wishes.value.unshift(newWish)
+
+  // 2. 重新加载心愿列表，确保看到他人新发布的心愿
+  await loadWishes()
   
   // 刷新图表数据
   if (chartsBoardRef.value) {
