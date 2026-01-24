@@ -13,6 +13,7 @@ import { useUserStore } from '@/stores/user';
 const userStore = useUserStore();
 const showForm = ref(false);
 const chartsBoardRef = ref(null);
+const particles = ref([]); // Background animation particles
 
 const wishes = ref([]);
 
@@ -44,6 +45,20 @@ const loadWishes = async () => {
 // Load wishes on mount
 onMounted(() => {
   loadWishes();
+  
+  // Initialize background particles for "Red Pulse" effect
+  particles.value = Array.from({ length: 18 }, (_, i) => ({
+    id: i,
+    style: {
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 120}%`,
+      width: `${Math.random() * 10 + 10}px`, // Larger size for stars (10-20px)
+      height: `${Math.random() * 10 + 10}px`,
+      animationDuration: `${Math.random() * 15 + 20}s`,
+      animationDelay: `${Math.random() * -20}s`,
+      opacity: Math.random() * 0.3 + 0.1
+    }
+  }));
 });
 
 const handlePublishWish = () => {
@@ -133,10 +148,35 @@ const handleManualRefresh = async () => {
 </script>
 
 <template>
-  <div class="pb-20">
-    <NavBar @publish="handlePublishWish" />
-    
-    <main>
+  <div class="min-h-screen relative pb-20 overflow-hidden bg-slate-50">
+    <!-- Red Culture Background Animation -->
+    <div class="fixed inset-0 z-0 pointer-events-none">
+      <!-- Base Gradient -->
+      <div class="absolute inset-0 bg-gradient-to-br from-red-50/60 via-white/80 to-amber-50/50"></div>
+      
+      <!-- Animated Shapes (Red Ribbons/Clouds) -->
+      <div class="absolute -top-40 -left-20 w-[40rem] h-[40rem] bg-red-100/40 rounded-full blur-3xl animate-pulse-slow"></div>
+      <div class="absolute top-1/2 -right-40 w-[30rem] h-[30rem] bg-orange-100/40 rounded-full blur-3xl animate-pulse-slow animation-delay-2000"></div>
+      <div class="absolute bottom-0 left-1/3 w-full h-96 bg-gradient-to-t from-red-50 to-transparent blur-2xl opacity-60"></div>
+      
+      <!-- Floating Particles (Stars/Sparks) -->
+      <div 
+        v-for="p in particles" 
+        :key="p.id"
+        class="absolute animate-float-up text-brand-red/20"
+        :style="p.style"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" class="w-full h-full">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+        </svg>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="relative z-10">
+      <NavBar @publish="handlePublishWish" />
+      
+      <main>
       <HeroSection />
       
       <!-- Charts Visualization Section -->
@@ -190,5 +230,30 @@ const handleManualRefresh = async () => {
       <p>© 2026 数字传承 · 红色德兴 项目组</p>
       <p class="mt-1">Powered by Vue 3 & Flask</p>
     </footer>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.animate-pulse-slow {
+  animation: pulse-slow 8s ease-in-out infinite;
+}
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.05); }
+}
+
+@keyframes float-up {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  10% { opacity: var(--tw-bg-opacity, 1); }
+  90% { opacity: var(--tw-bg-opacity, 1); }
+  100% { transform: translateY(-120vh) rotate(180deg); opacity: 0; }
+}
+.animate-float-up {
+  animation: float-up linear infinite;
+}
+</style>
