@@ -1,5 +1,5 @@
 <script setup>
-import { ref}
+import { ref } from 'vue';
 import NavBar from '../components/NavBar.vue';
 import HeroSection from '../components/HeroSection.vue';
 import ChartsBoard from '../components/charts/ChartsBoard.vue';
@@ -43,7 +43,14 @@ const loadWishes = async () => {
 
 // Load wishes on mount
 onMounted(() => {
-  loadWista
+  loadWishes();
+});
+
+const handlePublishWish = () => {
+  showForm.value = true;
+}
+
+const handleWishSubmitted = async (newWish) => {
   // ensure fields for likes/comments
   newWish.likes = newWish.likes ?? 0
   newWish.comments = newWish.comments ?? []
