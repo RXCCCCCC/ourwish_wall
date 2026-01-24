@@ -47,16 +47,17 @@ onMounted(() => {
   loadWishes();
   
   // Initialize background particles for "Red Pulse" effect
-  particles.value = Array.from({ length: 18 }, (_, i) => ({
+  // Increase number of stars and lower their opacity so they are subtler
+  particles.value = Array.from({ length: 40 }, (_, i) => ({
     id: i,
     style: {
       left: `${Math.random() * 100}%`,
       top: `${Math.random() * 120}%`,
-      width: `${Math.random() * 10 + 10}px`, // Larger size for stars (10-20px)
-      height: `${Math.random() * 10 + 10}px`,
+      width: `${Math.random() * 12 + 8}px`, // size ~8-20px
+      height: `${Math.random() * 12 + 8}px`,
       animationDuration: `${Math.random() * 15 + 20}s`,
       animationDelay: `${Math.random() * -20}s`,
-      opacity: Math.random() * 0.3 + 0.1
+      opacity: Math.random() * 0.09 + 0.03 // opacity ~0.03-0.12
     }
   }));
 });
@@ -163,7 +164,7 @@ const handleManualRefresh = async () => {
       <div 
         v-for="p in particles" 
         :key="p.id"
-        class="absolute animate-float-up text-brand-red/20"
+        class="absolute animate-float-up text-brand-red/10"
         :style="p.style"
       >
         <svg viewBox="0 0 24 24" fill="currentColor" class="w-full h-full">
