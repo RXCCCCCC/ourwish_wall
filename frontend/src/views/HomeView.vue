@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { ref}
 import NavBar from '../components/NavBar.vue';
 import HeroSection from '../components/HeroSection.vue';
 import ChartsBoard from '../components/charts/ChartsBoard.vue';
@@ -43,14 +43,7 @@ const loadWishes = async () => {
 
 // Load wishes on mount
 onMounted(() => {
-  loadWishes();
-});
-
-const handlePublishWish = () => {
-  showForm.value = true;
-}
-
-const handleWishSubmitted = async (newWish) => {
+  loadWista
   // ensure fields for likes/comments
   newWish.likes = newWish.likes ?? 0
   newWish.comments = newWish.comments ?? []
@@ -113,6 +106,23 @@ const handleUpdateWish = (updated) => {
   const idx = wishes.value.findIndex(w => w.id === updated.id)
   if (idx !== -1) wishes.value[idx] = { ...wishes.value[idx], ...updated }
 }
+
+const refreshing = ref(false)
+const handleManualRefresh = async () => {
+  if (refreshing.value) return
+  refreshing.value = true
+  try {
+    await loadWishes()
+    if (chartsBoardRef.value) {
+      await chartsBoardRef.value.refreshCharts()
+    }
+    showToast({ type: 'success', message: '已更新最新心愿' })
+  } catch (e) {
+    showToast('刷新失败')
+  } finally {
+    setTimeout(() => { refreshing.value = false }, 500) // min spin time
+  }
+}
 </script>
 
 <template>
@@ -149,6 +159,24 @@ const handleUpdateWish = (updated) => {
       v-model:show="showForm" 
       @submitted="handleWishSubmitted"
     />
+
+    <!-- Fixed Floating Refresh Button -->
+    <button 
+      @click="handleManualRefresh"
+      class="fixed bottom-24 right-4 z-40 bg-white p-3 rounded-full shadow-lg shadow-gray-200 border border-gray-100 text-gray-600 hover:text-brand-red active:scale-95 transition-all text-xs flex flex-col items-center justify-center w-14 h-14"
+      :class="{ 'opacity-80': refreshing }"
+    >
+      <svg 
+        class="w-6 h-6 mb-0.5" 
+        :class="{ 'animate-spin': refreshing }"
+        fill="none" 
+        stroke="currentColor" 
+        viewBox="0 0 24 24"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+      </svg>
+      <span class="scale-90 font-medium">刷新</span>
+    </button>
 
     <!-- Footer -->
     <footer class="mt-20 py-8 text-center text-gray-400 text-xs border-t border-gray-100">

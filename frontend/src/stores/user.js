@@ -23,6 +23,17 @@ export const useUserStore = defineStore('user', () => {
   }
 
   const userInfo = ref(_stored || generateAnon())
+  const showProfileGuide = ref(false)
+
+  function setShowProfileGuide(val) {
+    showProfileGuide.value = val
+  }
+
+  function randomColor() {
+    // generate pastel-ish color
+    const hue = Math.floor(Math.random() * 360)
+    return `hsl(${hue} 70% 45%)`
+  }
 
   function randomColor() {
     // generate pastel-ish color
@@ -53,8 +64,8 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function checkLogin() {
-    return !!userInfo.value
+    return !!_stored
   }
 
-  return { userInfo, login, checkLogin, setColor, setName }
+  return { userInfo, login, checkLogin, setColor, setName, showProfileGuide, setShowProfileGuide }
 })

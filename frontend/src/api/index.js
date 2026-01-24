@@ -91,11 +91,16 @@ export const wishAPI = {
   // 获取统计数据
   getStats() {
     return apiClient.get('/api/stats')
-  }
-  ,
+  },
+  
   // 获取单条心愿
   getWish(wishId, params = {}) {
     return apiClient.get(`/api/wishes/${wishId}`, { params })
+  },
+  
+  // 更新用户资料（同步到所有心愿和评论）
+  updateUserProfile(userUid, data) {
+    return apiClient.put(`/api/users/${userUid}/profile`, data)
   }
 }
 

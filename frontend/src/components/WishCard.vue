@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { wishAPI } from '@/api'
 import { showConfirmDialog } from 'vant'
@@ -47,6 +47,30 @@ const likedIds = ref(JSON.parse(localStorage.getItem('liked_wishes') || '[]'))
 const likes = ref(props.wish.likes ?? 0)
 // Prefer backend user_liked state over local storage
 const liked = ref(props.wish.user_liked ?? likedIds.value.includes(props.wish.id))
+
+// Watch for prop updates to sync state (e.g. after refresh or AI update)
+watch(() => props.wish, (newVal) => {
+	if (!newVal) return
+	
+	// Sync likes count
+	likes.value = newVal.likes ?? 0
+	
+	// Sync liked status - trust backend if explicit (boolean), else fallback
+	if (typeof newVal.user_liked === 'boolean') {
+		liked.value = newVal.user_liked
+	} else {
+		liked.value = likedIds.value.includes(newVal.id)
+	}
+	
+	// Sync comments
+	if (newVal.comments) {
+		comments.value = [...newVal.comments]
+		// Rebuild comment likes map
+		commentLikesMap.value = new Map(
+			comments.value.map(c => [c.id, c.likes ?? 0])
+		)
+	}
+}, { deep: true })
 
 async function toggleLike() {
 	const id = props.wish.id

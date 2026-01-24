@@ -1,9 +1,8 @@
 <script setup>
 import { ref } from 'vue'
 import { useUserStore } from '@/stores/user'
-import { showToast } from 'vant'
+import { showToast}
 
-const props = defineProps({
   onPublish: {
     type: Function,
     default: () => {}
@@ -18,53 +17,36 @@ const inputName = ref('')
 
 function openSettings() {
   if (!userStore.userInfo) return
+  if (userStore.showProfileGuide) {
+    userStore.setShowProfileGuide(false)
+  }
   inputName.value = userStore.userInfo.name
   showSettings.value = true
 }
 
 function saveSettings() {
-  if (inputName.value.trim()) {
-    userStore.setName(inputName.value.trim())
-  }
-  showSettings.value = false
-  showToast({ type: 'success', message: '设置已保存', duration: 1500 })
-}
-
-function triggerColorPicker() {
-  colorInput.value?.click()
-}
-
-function onColorInput(e) {
-  const v = e.target.value
-  userStore.setColor(v)
-}
-</script>
-
-<template>
-  <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 h-16 md:h-20 transition-all duration-300">
-    <div class="h-full w-full max-w-5xl mx-auto px-4 flex items-center justify-between">
-    <!-- Left Logo Area -->
-    <div class="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink-1">
-      <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg flex-shrink-0 flex items-center justify-center shadow-lg shadow-red-200 overflow-hidden bg-white">
-        <img src="/logo.png" alt="logo" class="w-full h-full object-cover" />
-      </div>
-      <div class="flex flex-col min-w-0">
-        <h1 class="font-serif font-bold text-sm md:text-xl text-gray-900 tracking-wide leading-tight md:leading-none whitespace-nowrap overflow-hidden text-ellipsis">数字传承 · 红色德兴</h1>
-        <span class="text-[10px] text-gray-400 font-sans tracking-wider mt-0.5 whitespace-nowrap hidden sm:block">DIGITAL INHERITANCE OF RED GENES</span>
-      </div>
+inputName.value.trim()) {
+  ifr(ame(inputName.value.tr
+  shoiotN(iput.vaecaixi)n  <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg flex-shrink-0 flex items-center justify-center shadow-lg shadow-red-200 overflow-hidden bg-white">
+  }="/logo.png" alt="logo" class="w-full h-full object-cover" />
     </div>
-
-    <!-- Right Action Area -->
-    <div class="flex items-center gap-2 md:gap-4 flex-shrink-0 ml-2">
-      <!-- User Settings Trigger -->
-      <button 
-        v-if="userStore.userInfo"
-        @click="openSettings"
-        class="flex items-center gap-1.5 pl-1 pr-2 md:px-3 md:gap-2 py-1 md:py-1.5 rounded-full border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all active:scale-95 flex-shrink-0 max-w-[100px] md:max-w-xs"
-      >
-        <span :style="{ backgroundColor: userStore.userInfo.color }" class="w-5 h-5 md:w-6 md:h-6 rounded-full shadow-inner border border-black/5 flex-shrink-0"></span>
-        <span class="text-[10px] md:text-xs font-medium text-gray-700 truncate block">{{ userStore.userInfo.name }}</span>
-      </button>
+    <div class="flex flex-col min-w-0">2">   <!-- User Settings Trigger -->
+      <div class="relative flex-shrink-0">
+        <button 
+          v-if="userStore.userInfo"
+          @click="openSettings"
+          class="flex items-center gap-1.5 pl-1 pr-2 md:px-3 md:gap-2 py-1 md:py-1.5 rounded-full border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all active:scale-95 flex-shrink-0 max-w-[100px] md:max-w-xs relative z-10"
+          :class="{ 'ring-2 ring-red-400 ring-offset-1': userStore.showProfileGuide }"
+        >
+          <span :style="{ backgroundColor: userStore.userInfo.color }" class="w-5 h-5 md:w-6 md:h-6 rounded-full shadow-inner border border-black/5 flex-shrink-0"></span>
+          <span class="
+        <!-- Onboarding Tip -->
+        <div v-if="userStore.showProfileGuide" 
+             class="absolute top-full right-0 mt-3 bg-red-500 text-white text-[10px] md:text-xs px-2 py-1.5 rounded-lg shadow-xl z-20 whitespace-nowrap animate-bounce">
+          <div class="absolute -top-1 right-3 w-2 h-2 bg-red-500 rotate-45"></div>
+          点此修改昵称与颜色
+        </div>
+      </div>
 
       <button 
         @click="onPublish"

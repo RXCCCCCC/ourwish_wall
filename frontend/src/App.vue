@@ -17,6 +17,7 @@ onMounted(() => {
 function useGenerated() {
   userStore.login()
   showWelcome.value = false
+  userStore.setShowProfileGuide(true)
 }
 
 function useNickname() {
@@ -24,9 +25,11 @@ function useNickname() {
   if (name) {
     userStore.login(name)
     showWelcome.value = false
+    userStore.setShowProfileGuide(true)
   } else {
     userStore.login()
     showWelcome.value = false
+    userStore.setShowProfileGuide(true)
   }
 }
 </script>
