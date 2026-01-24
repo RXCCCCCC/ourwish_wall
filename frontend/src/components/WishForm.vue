@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { useUserStore } from '@/stores/user';
 import { showToast } from 'vant';
 import { wishAPI } from '@/api';
+import { CATEGORY_COLORS } from '@/constants';
 
 const props = defineProps({
   show: Boolean
@@ -76,8 +77,10 @@ const onSubmit = async () => {
             v-for="cat in categories" 
             :key="cat.value"
             @click="category = cat.value"
-            class="px-3 py-1.5 rounded-full text-xs transition-colors"
-            :class="category === cat.value ? 'bg-brand-red text-white' : 'bg-gray-100 text-gray-600'"
+            class="px-3 py-1.5 rounded-full text-xs transition-colors border"
+            :style="category === cat.value 
+              ? { backgroundColor: CATEGORY_COLORS[cat.value], borderColor: CATEGORY_COLORS[cat.value], color: '#fff' } 
+              : { backgroundColor: '#f3f4f6', borderColor: '#f3f4f6', color: '#4b5563' }"
           >
             {{ cat.text }}
           </button>

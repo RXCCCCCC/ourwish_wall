@@ -41,36 +41,36 @@ function onColorInput(e) {
 </script>
 
 <template>
-  <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 h-20">
-    <div class="h-full w-full max-w-5xl mx-auto px-4 md:px-8 flex items-center justify-between">
+  <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 h-16 md:h-20 transition-all duration-300">
+    <div class="h-full w-full max-w-5xl mx-auto px-4 flex items-center justify-between">
     <!-- Left Logo Area -->
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg shadow-red-200 overflow-hidden bg-white">
-        <img src="/logo.png" alt="logo" class="w-10 h-10 object-cover" />
+    <div class="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink-1">
+      <div class="w-8 h-8 md:w-10 md:h-10 rounded-lg flex-shrink-0 flex items-center justify-center shadow-lg shadow-red-200 overflow-hidden bg-white">
+        <img src="/logo.png" alt="logo" class="w-full h-full object-cover" />
       </div>
-      <div class="flex flex-col">
-        <h1 class="font-serif font-bold text-base md:text-xl text-gray-900 tracking-wide leading-tight md:leading-none whitespace-nowrap">数字传承 · 红色德兴</h1>
+      <div class="flex flex-col min-w-0">
+        <h1 class="font-serif font-bold text-sm md:text-xl text-gray-900 tracking-wide leading-tight md:leading-none whitespace-nowrap overflow-hidden text-ellipsis">数字传承 · 红色德兴</h1>
         <span class="text-[10px] text-gray-400 font-sans tracking-wider mt-0.5 whitespace-nowrap hidden sm:block">DIGITAL INHERITANCE OF RED GENES</span>
       </div>
     </div>
 
     <!-- Right Action Area -->
-    <div class="flex items-center gap-3">
+    <div class="flex items-center gap-2 md:gap-4 flex-shrink-0 ml-2">
       <!-- User Settings Trigger -->
       <button 
         v-if="userStore.userInfo"
         @click="openSettings"
-        class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all active:scale-95"
+        class="flex items-center gap-1.5 pl-1 pr-2 md:px-3 md:gap-2 py-1 md:py-1.5 rounded-full border border-gray-100 bg-white shadow-sm hover:shadow-md transition-all active:scale-95 flex-shrink-0 max-w-[100px] md:max-w-xs"
       >
-        <span :style="{ backgroundColor: userStore.userInfo.color }" class="w-6 h-6 rounded-full shadow-inner border border-black/5"></span>
-        <span class="text-xs font-medium text-gray-700 max-w-[4rem] truncate">{{ userStore.userInfo.name }}</span>
+        <span :style="{ backgroundColor: userStore.userInfo.color }" class="w-5 h-5 md:w-6 md:h-6 rounded-full shadow-inner border border-black/5 flex-shrink-0"></span>
+        <span class="text-[10px] md:text-xs font-medium text-gray-700 truncate block">{{ userStore.userInfo.name }}</span>
       </button>
 
       <button 
         @click="onPublish"
-        class="bg-brand-dark text-white px-4 py-2 rounded-full text-xs md:text-sm font-medium hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200 flex items-center gap-1"
+        class="bg-brand-dark text-white pl-2 pr-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-medium hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200 flex items-center gap-0.5 md:gap-1 whitespace-nowrap flex-shrink-0"
       >
-        <span>+</span> 发布心愿
+        <span class="text-base leading-none md:text-lg mb-0.5 md:mb-1">+</span> 发布<span class="hidden md:inline">心愿</span>
       </button>
     </div>
 

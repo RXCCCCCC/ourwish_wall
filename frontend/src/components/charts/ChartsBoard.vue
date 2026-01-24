@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import * as echarts from 'echarts'
 import 'echarts-wordcloud'
 import { wishAPI } from '@/api'
+import { CATEGORY_COLORS, CATEGORY_DEFAULT_COLOR } from '@/constants'
 
 const containerRef = ref(null)
 const pieChartRef = ref(null)
@@ -31,19 +32,13 @@ async function refreshCharts() {
 function updateCharts() {
   const categoryStats = statsData.value?.category_stats || []
   const wordCloudData = statsData.value?.word_cloud || []
+  const isMobile = window.innerWidth < 768
 
   if (pieChartInstance) {
-    const categoryColors = {
-      '红色传承': '#ef4444',
-      '乡村建设': '#f59e0b',
-      '产业发展': '#3b82f6',
-      '生态环保': '#10b981'
-    }
-    
     const pieData = categoryStats.map(item => ({
       value: item.count,
       name: item.category,
-      itemStyle: { color: categoryColors[item.category] || '#666' }
+      itemStyle: { color: CATEGORY_COLORS[item.category] || CATEGORY_DEFAULT_COLOR }
     }))
 
     pieChartInstance.setOption({
@@ -51,7 +46,7 @@ function updateCharts() {
         text: pieData.length > 0 ? '心愿类别分布' : '暂无数据', 
         left: 'center', 
         top: '6%', 
-        textStyle: { fontSize: 26, fontFamily: 'serif' } 
+        textStyle: { fontSize: isMobile ? 20 : 24, fontFamily: 'serif' } 
       },
       tooltip: pieData.length > 0 ? { trigger: 'item', formatter: '{b}: {c} ({d}%)' } : { show: false },
       legend: pieData.length > 0 ? { 
@@ -64,8 +59,8 @@ function updateCharts() {
       series: pieData.length > 0 ? [{
         name: '类别', 
         type: 'pie', 
-        radius: ['30%', '55%'], 
-        center: ['50%', '56%'], 
+        radius: ['35%', '60%'], 
+        center: ['50%', '55%'], 
         avoidLabelOverlap: true,
         itemStyle: { borderRadius: 10, borderColor: '#fff', borderWidth: 2 },
         label: { show: false },
@@ -82,7 +77,7 @@ function updateCharts() {
         text: wordCloudData.length > 0 ? '热门心愿词云' : '暂无数据', 
         left: 'center', 
         top: '6%', 
-        textStyle: { fontSize: 26, fontFamily: 'serif' } 
+        textStyle: { fontSize: isMobile ? 20 : 24, fontFamily: 'serif' } 
       },
       series: [{
         type: 'wordCloud', 
@@ -91,7 +86,7 @@ function updateCharts() {
         top: '10%', 
         width: '95%', 
         height: '95%',
-        sizeRange: [10, 22], 
+        sizeRange: [10, 22],
         rotationRange: [0, 0], 
         rotationStep: 0, 
         gridSize: 10, 

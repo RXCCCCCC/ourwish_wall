@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { wishAPI } from '@/api'
 import { showConfirmDialog } from 'vant'
+import { CATEGORY_COLORS, CATEGORY_DEFAULT_COLOR } from '@/constants'
 
 const props = defineProps({
 	wish: {
@@ -19,14 +20,7 @@ const emit = defineEmits(['delete-wish', 'update-wish'])
 
 const userStore = useUserStore()
 
-const categoryColors = {
-	'红色传承': '#ef4444',
-	'乡村建设': '#f59e0b',
-	'产业发展': '#3b82f6',
-	'生态环保': '#10b981'
-}
-
-const categoryColor = computed(() => categoryColors[props.wish.category] || '#666')
+const categoryColor = computed(() => CATEGORY_COLORS[props.wish.category] || CATEGORY_DEFAULT_COLOR)
 
 function formatChineseDate(d) {
 	if (!d) return ''
@@ -307,8 +301,8 @@ async function handleDeleteWish() {
 		<div class="flex h-full">
 			<div class="w-1 flex-shrink-0" :style="{ backgroundColor: categoryColor }"></div>
 
-			<div class="p-6 flex-1 flex flex-col">
-				<div class="flex justify-between items-start mb-4">
+			<div class="p-4 md:p-6 flex-1 flex flex-col">
+				<div class="flex justify-between items-start mb-3 md:mb-4">
 					<div class="flex items-center gap-2">
 						<span class="w-2 h-2 rounded-full" :style="{ backgroundColor: categoryColor }"></span>
 						<span class="text-xs text-gray-400">{{ formatChineseDate(props.wish.created_at) || '刚刚' }}</span>
