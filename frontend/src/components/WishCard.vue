@@ -19,7 +19,14 @@ const emit = defineEmits(['delete-wish', 'update-wish'])
 
 const userStore = useUserStore()
 
-const sideBorderClass = computed(() => (props.index % 2 === 0 ? 'border-l-red-600' : 'border-l-slate-700'))
+const categoryColors = {
+	'红色传承': '#ef4444',
+	'乡村建设': '#f59e0b',
+	'产业发展': '#3b82f6',
+	'生态环保': '#10b981'
+}
+
+const categoryColor = computed(() => categoryColors[props.wish.category] || '#666')
 
 function formatChineseDate(d) {
 	if (!d) return ''
@@ -298,54 +305,21 @@ async function handleDeleteWish() {
 <template>
 	<div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-300">
 		<div class="flex h-full">
-			<div :class="['w-1 flex-shrink-0', sideBorderClass]"></div>
+			<div class="w-1 flex-shrink-0" :style="{ backgroundColor: categoryColor }"></div>
 
 			<div class="p-6 flex-1 flex flex-col">
 				<div class="flex justify-between items-start mb-4">
 					<div class="flex items-center gap-2">
-						<span :class="['w-2 h-2 rounded-full', props.index % 2 === 0 ? 'bg-red-400' : 'bg-slate-700']"></span>
+						<span class="w-2 h-2 rounded-full" :style="{ backgroundColor: categoryColor }"></span>
 						<span class="text-xs text-gray-400">{{ formatChineseDate(props.wish.created_at) || '刚刚' }}</span>
 					</div>
 					<div class="text-gray-200 flex items-center gap-2">
-						<template v-if="props.wish.category === '红色传承'">
-							<div class="flex items-center gap-2 text-red-400">
-								<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 opacity-30">
-									<path d="M4 3v18l6-3 6 3V3l-6 3-6-3z" />
-								</svg>
-								<span class="text-xs">{{ props.wish.category }}</span>
-							</div>
-						</template>
-						<template v-else-if="props.wish.category === '乡村建设'">
-							<div class="flex items-center gap-2 text-green-500">
-								<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 opacity-30">
-									<path d="M3 13h18v2H3v-2zm2-6h14v4H5V7zM7 3h10v2H7V3z" />
-								</svg>
-								<span class="text-xs">{{ props.wish.category }}</span>
-							</div>
-						</template>
-						<template v-else-if="props.wish.category === '产业发展'">
-							<div class="flex items-center gap-2 text-yellow-600">
-								<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 opacity-30">
-									<path d="M3 21h18v-6l-6-4-6 4-6-4v10zM13 7V3h-2v4H7l5 3 5-3h-4z" />
-								</svg>
-								<span class="text-xs">{{ props.wish.category }}</span>
-							</div>
-						</template>
-						<template v-else-if="props.wish.category === '生态环保'">
-							<div class="flex items-center gap-2 text-teal-500">
-								<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 opacity-30">
-									<path d="M12 2C8 7 4 8 4 12c0 4 4 8 8 8s8-4 8-8c0-4-4-5-8-10z" />
-								</svg>
-								<span class="text-xs">{{ props.wish.category }}</span>
-							</div>
-						</template>
-						<template v-else>
-							<div class="text-gray-200">
-								<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 opacity-30">
-									<path fill-rule="evenodd" d="M4.848 2.771A49.144 49.144 0 0112 2.25c2.405 0 4.802.173 7.152.52 1.693.252 2.894 1.761 2.894 3.473v11.505c0 1.712-1.201 3.221-2.894 3.473-.205.03-.414.056-.624.078-1.045.11-2.002-.676-2.126-1.722L16 17H8l-.348 2.023c-.124 1.046-1.081 1.832-2.126 1.722a46.666 46.666 0 01-6.685-.694C1.037 19.89 2.536 18.23 2.536 16.536V6.244c0-1.712 1.5-3.376 3.312-3.473zM5 8.25a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5A.75.75 0 015 8.25zm0 3a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5A.75.75 0 015 11.25zm5-4.5h6a.75.75 0 01.75.75v10.5a.75.75 0 01-.75.75h-6a.75.75 0 01-.75-.75V7.5a.75.75 0 01.75-.75z" clip-rule="evenodd" />
-								</svg>
-							</div>
-						</template>
+						<div class="flex items-center gap-2" :style="{ color: categoryColor }">
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 opacity-30">
+								<path d="M4 3v18l6-3 6 3V3l-6 3-6-3z" />
+							</svg>
+							<span class="text-xs">{{ props.wish.category }}</span>
+						</div>
 					</div>
 				</div>
 
@@ -358,7 +332,7 @@ async function handleDeleteWish() {
 						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3">
 							<path fill-rule="evenodd" d="M14.615 1.595a.75.75 0 01.359.852L12.982 9.75h7.268a.75.75 0 01.548 1.262l-10.5 11.25a.75.75 0 01-1.272-.71l1.992-7.302H3.75a.75.75 0 01-.548-1.262l10.5-11.25a.75.75 0 01.913-.143z" clip-rule="evenodd" />
 						</svg>
-						数字回响
+						红色回响
 					</div>
 					<div class="text-xs text-gray-500 leading-relaxed">
 						<div v-if="props.wish.ai_response === aiPlaceholder" class="flex items-center gap-2">

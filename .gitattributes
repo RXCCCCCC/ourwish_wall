@@ -1,2 +1,19 @@
+# Ensure text files use LF endings on checkout
+*.py text eol=lf
+*.sh text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.vue text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.env text eol=lf
+
+# Binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.zip binary
+*.tar.gz binary
 # Auto detect text files and perform LF normalization
 * text=auto

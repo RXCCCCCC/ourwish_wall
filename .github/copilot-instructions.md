@@ -34,12 +34,15 @@ Notes for AI coding agents. Keep concise, follow existing patterns automatically
 ## Integration notes
 - MySQL via PyMySQL; DB URL from `DATABASE_URL` or discrete env vars in [backend/config.py](backend/config.py). Ensure utf8mb4.
 - ECharts + echarts-wordcloud for charts; Vant 4 for mobile components.
-- AI service flags in [backend/config.py](backend/config.py) (`AI_SERVICE_ENABLED`, `AI_MODEL` etc.); defaults to local mock.
+- AI service: [backend/services/ai_service.py](backend/services/ai_service.py) uses local rule-based responses by default, or calls SiliconFlow LLM if `AI_SERVICE_ENABLED=true`, `AI_API_KEY`, and `AI_API_ENDPOINT` set in [backend/config.py](backend/config.py).
+- Jieba for Chinese word segmentation in word-cloud generation (already in requirements.txt).
+- Data management: [scripts/clear_demo_data.py](scripts/clear_demo_data.py) safely truncates or deletes demo records with backup/confirmation flow.
 
 ## Safety/gotchas
 - Do not assume cascade deletes on likes/comments—preserve manual cleanup logic or add relationships deliberately.
 - Keep mobile-first spacing/typography; avoid desktop-only tweaks without `sm`/`md` guards.
 - Respect content/category validation and rate limits when modifying payloads or UI flows.
 - Mention lack of migration tooling when altering DB schema; prod needs manual migrations.
+- AI responses: rule-based mock is fast and always works; LLM requires valid API credentials and network. Test fallback behavior when LLM unavailable.
 
 If anything here is unclear or you need more examples, ask to expand a section.

@@ -14,8 +14,9 @@ export default defineConfig({
     host: '0.0.0.0', // Expose to network
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:5000',
-        changeOrigin: true
+        target: process.env.VITE_BACKEND_URL || 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        secure: false
       }
     }
   }

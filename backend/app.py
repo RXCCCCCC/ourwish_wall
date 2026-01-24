@@ -23,7 +23,13 @@ def create_app(config_name='default'):
     
     # 初始化扩展
     db.init_app(app)
-    CORS(app, origins=app.config['CORS_ORIGINS'])
+    
+    # CORS 配置 - 允许所有来源访问，支持凭证
+    CORS(app, 
+         resources={r"/api/*": {"origins": "*"}},
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+         supports_credentials=True)
     
     # 注册路由
     register_routes(app)
