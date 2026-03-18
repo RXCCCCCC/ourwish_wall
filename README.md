@@ -22,14 +22,6 @@
 
 下面展示项目在手机与桌面端的截图，以及用于快速体验的二维码，图片保存在 `img/` 目录下：
 
-移动端预览（手机）：
-
-![移动端预览 - 手机截图](img/mobile.jpg)
-
-桌面端预览（PC）：
-
-![桌面端预览 - PC 截图](img/PC.png)
-
 网址:
 https://www.rxcccccc.icu/wishes
 
@@ -37,6 +29,13 @@ https://www.rxcccccc.icu/wishes
 
 ![扫码体验 - 项目二维码](img/QR.png)
 
+移动端预览（手机）：
+
+![移动端预览 - 手机截图](img/mobile.jpg)
+
+桌面端预览（PC）：
+
+![桌面端预览 - PC 截图](img/PC.png)
 
 ## 🧱 技术栈
 
